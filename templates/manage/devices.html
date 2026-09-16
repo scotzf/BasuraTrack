@@ -1,0 +1,88 @@
+{% extends "base_manage.html" %}
+{% block title %}Devices &middot; Sukod{% endblock %}
+{% comment %}
+  Janitor phones. A device is a PLACE, not a person.
+
+  Labels name where the phone is used ("Canteen staging point"), never who
+  carries it. This is the schema-level half of the rule that the system
+  measures buildings and streams, never people - see models.py.
+{% endcomment %}
+{% block content %}
+<h1>Devices</h1>
+<p class="small muted">
+  One per staging point. The janitor types the code once; the phone remembers
+  it from then on and never shows a login screen.
+</p>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+{% if new_device %}
+{% comment %} The code is shown large because it is about to be read off this screen and
+   typed into a phone by someone standing across the room. {% endcomment %}
+<div class="card code-card">
+  <h2>{{ new_device.label }}</h2>
+  <p class="small muted">Open <strong>{{ request.get_host }}</strong> on that
+     phone, tap Pair, and enter:</p>
+  <p class="pair-code">{{ new_device.pair_code }}</p>
+  <p class="small muted">
+    Good until it is used. Reset it below if the phone is lost or replaced.
+  </p>
+</div>
+{% endif %}
+
+<form class="card" method="post">
+  {% csrf_token %}
+  <input type="hidden" name="action" value="create">
+  <h2>New device</h2>
+  <label for="label">Label &mdash; where it is used</label>
+  <input type="text" id="label" name="label" required autocomplete="off"
+         placeholder="Canteen staging point">
+  <p class="small muted">
+    Name the place, not the person. A device labelled with someone's name turns
+    every entry into their personal record, which is exactly what this system
+    refuses to do.
+  </p>
+  <button type="submit">Create and show pairing code</button>
+</form>
+
+<div class="card">
+  <h2>All devices</h2>
+  {% if devices %}
+  <table class="table">
+    <tr><th>Label</th><th>Code</th><th>Paired</th><th>Last seen</th><th></th></tr>
+    {% for d in devices %}
+    <tr>
+      <td>{{ d.label }}</td>
+      <td class="mono">{% if d.paired_at %}<span class="muted">used</span>
+                       {% else %}{{ d.pair_code }}{% endif %}</td>
+      <td class="small">
+        {% if d.paired_at %}{{ d.paired_at|date:"d M Y" }}
+        {% else %}<span class="tag tag-warn">NOT PAIRED</span>{% endif %}
+      </td>
+      <td class="small muted">
+        {{ d.last_seen|date:"d M Y H:i"|default:"&mdash;" }}
+      </td>
+      <td>
+        <form method="post" class="inline-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="reset">
+          <input type="hidden" name="device_id" value="{{ d.id }}">
+          <button type="submit" class="linkish"
+                  title="Issue a new code and stop the old phone posting">
+            Reset
+          </button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="small muted">
+    Resetting issues a new code and invalidates the old phone's token. Entries
+    it already recorded are kept &mdash; they are the site's record, not the
+    device's.
+  </p>
+  {% else %}
+  <p class="muted">No devices yet. Create one above.</p>
+  {% endif %}
+</div>
+{% endblock %}

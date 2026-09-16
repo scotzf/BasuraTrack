@@ -1,0 +1,62 @@
+{% extends "base_manage.html" %}
+{% block title %}Manage &middot; Sukod{% endblock %}
+{% comment %}
+  Admin landing. Counts, not charts.
+
+  This screen answers "is the system set up correctly?" - a setup question.
+  "How are we doing?" is a different question with a different audience, and
+  it has its own interface at /monitor/.
+{% endcomment %}
+{% block content %}
+<h1>{{ site.name }}</h1>
+<p class="small muted">Setup and access. The numbers live on the dashboard.</p>
+
+<div class="card headline">
+  <div class="stat">
+    <div class="k">Accounts</div>
+    <div class="n">{{ staff_count }}</div>
+    <div class="small muted">supervisors and admins</div>
+  </div>
+  <div class="stat">
+    <div class="k">Devices</div>
+    <div class="n">{{ device_count }}</div>
+    <div class="small muted">
+      {% if unpaired %}{{ unpaired }} not yet paired{% else %}all paired{% endif %}
+    </div>
+  </div>
+  <div class="stat">
+    <div class="k">Source areas</div>
+    <div class="n">{{ area_count }}</div>
+    <div class="small muted">active</div>
+  </div>
+</div>
+
+{% if uncalibrated %}
+{% comment %} A stream with no calibration contributes ZERO mass to every total, silently.
+   That is the kind of gap that gets discovered in front of an audience, so
+   the admin is told about it on the screen they land on. {% endcomment %}
+<div class="card limits">
+  <h2>Not yet calibrated</h2>
+  <p>{{ uncalibrated|join:", " }}</p>
+  <p class="small">
+    Sacks counted in these streams contribute <strong>zero</strong> mass to
+    every total and every report until a calibration exists. They are not
+    estimated and they are not guessed.
+  </p>
+  <p><a href="{% url 'calibration' %}">Calibrate now</a></p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Setting up a new site</h2>
+  <ol class="setup-steps">
+    <li><a href="{% url 'calibration' %}">Calibrate each stream</a> &mdash;
+        weigh 30+ sacks per stream. Everything downstream is multiplied by
+        this number, so it comes first.</li>
+    <li><a href="{% url 'manage_devices' %}">Add a device</a> for each staging
+        point and give the janitor its pairing code.</li>
+    <li><a href="{% url 'manage_staff' %}">Create a supervisor account</a> for
+        whoever runs the weekly purity checks.</li>
+  </ol>
+</div>
+{% endblock %}

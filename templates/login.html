@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Sign in &middot; Sukod{% endblock %}
+{% comment %}
+  The sign-in screen for supervisors and admins ONLY.
+
+  A janitor must never arrive here. Their phone pairs once with a code and
+  holds a token from then on - see CLAUDE.md: "Loggers pair by code and never
+  see a login screen." The link back to the notebook at the bottom is there so
+  that someone who lands here by mistake has an obvious way out.
+{% endcomment %}
+{% block nav %}
+<nav class="nav"><span class="brand">Sukod</span></nav>
+{% endblock %}
+
+{% block content %}
+<div class="card auth-card">
+  <h1>Sign in</h1>
+  <p class="small muted">For supervisors and admins.</p>
+
+  {% if form.errors %}
+    {% comment %} Deliberately vague: saying which half was wrong tells someone probing
+       for accounts that a username exists. {% endcomment %}
+    <p class="error">That username and password did not match.</p>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    <label for="id_username">Username</label>
+    {{ form.username }}
+    <label for="id_password">Password</label>
+    {{ form.password }}
+    {# Carries the page they were trying to reach, so they land on it. #}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit">Sign in</button>
+  </form>
+</div>
+
+<p class="small muted auth-aside">
+  Logging sacks? You do not need an account.
+  <a href="{% url 'pair' %}">Pair this phone</a> instead.
+</p>
+{% endblock %}
+{% block footer %}{% endblock %}

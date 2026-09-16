@@ -1,0 +1,71 @@
+{% extends "base_manage.html" %}
+{% block title %}Calibration &middot; Sukod{% endblock %}
+{% block content %}
+{% comment %}
+  Calibration: an admin job, quarterly, 30+ sacks per stream.
+
+  We ask for the individual weights rather than a mean, because the standard
+  deviation is what produces every error band in the system, and a typed sd
+  cannot be audited back to the sacks it came from.
+{% endcomment %}
+<h1>Calibration</h1>
+<p class="muted">Weigh full sacks of one stream and type each weight. Sukod
+computes the mean, the spread and the resulting error band. More sacks means a
+tighter band on every figure that follows.</p>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<form class="card" method="post">
+  {% csrf_token %}
+  <label for="stream">Stream</label>
+  <select id="stream" name="stream" required>
+    {% for s in streams %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+  </select>
+
+  <label for="weights">Sack weights in kg, one per sack</label>
+  <textarea id="weights" name="weights" rows="6" required
+            placeholder="7.2 8.1 6.9 7.8 8.4 ..."></textarea>
+  <p class="small muted">Separate with spaces, commas or new lines.
+    Thirty sacks per stream is the target; two is the minimum that can yield a spread at all.</p>
+
+  <button type="submit" style="margin-top:8px">Save calibration</button>
+</form>
+
+<div class="card">
+  <h2>In force now</h2>
+  <table>
+    <tr><th>Stream</th><th class="num">Mean per full sack</th>
+        <th class="num">Spread (sd)</th><th class="num">Sacks weighed</th>
+        <th class="num">Error on the mean</th><th>Measured</th></tr>
+    {% for c in current %}
+    <tr>
+      <td>{{ c.stream.name }}</td>
+      <td class="num">{{ c.mean_kg|floatformat:2 }} kg</td>
+      <td class="num">{{ c.sd_kg|floatformat:2 }} kg</td>
+      <td class="num">{{ c.n }}</td>
+      {# This is the sd/sqrt(n) term that every entry's sigma is built from. #}
+      <td class="num">&plusmn; {{ c.standard_error|floatformat:3 }} kg</td>
+      <td>{{ c.measured_on|date:"d M Y" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="6" class="muted">No calibrations yet. Until a stream is
+      calibrated, its sacks contribute no mass at all &mdash; and every report
+      says so in its limitations.</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+<div class="card">
+  <h2>History</h2>
+  <table>
+    <tr><th>Measured</th><th>Stream</th><th class="num">Mean</th>
+        <th class="num">sd</th><th class="num">n</th></tr>
+    {% for c in history %}
+    <tr><td>{{ c.measured_on|date:"d M Y" }}</td><td>{{ c.stream.name }}</td>
+        <td class="num">{{ c.mean_kg|floatformat:2 }}</td>
+        <td class="num">{{ c.sd_kg|floatformat:2 }}</td>
+        <td class="num">{{ c.n }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endblock %}

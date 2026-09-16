@@ -1,0 +1,76 @@
+{% extends "base_monitor.html" %}
+{% block title %}Purity over time &middot; Sukod{% endblock %}
+{% block content %}
+{% comment %}
+  Contamination trending up is an early warning: a bin has moved, a sign has
+  fallen down, a new tenant has arrived. That signal only exists because
+  somebody checks, which is why this page has anything on it at all.
+
+  Drawn as inline SVG - no chart library, no build step.
+{% endcomment %}
+<h1>Purity over time</h1>
+<p class="muted">Each line is one stream in one source area. Higher is cleaner.</p>
+
+{% for key, points in series.items %}
+<div class="card">
+  <h2>{{ key }}</h2>
+  <div id="chart-{{ forloop.counter }}" data-key="{{ key }}"></div>
+  <table class="small">
+    <tr><th>Checked on</th><th class="num">Items</th><th class="num">Purity</th><th>Main contaminant</th></tr>
+    {% for p in points %}
+    <tr><td>{{ p.at }}</td><td class="num">{{ p.n }}</td>
+        <td class="num"><strong>{{ p.purity }}%</strong></td>
+        <td class="muted">{{ p.contaminant|default:"&mdash;" }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% empty %}
+<div class="card muted">No purity checks recorded yet.</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+{{ series_json|json_script:"series-data" }}
+<script>
+// Plot each series as a simple polyline on a 0-100% scale. Points are spaced
+// evenly by index rather than by date: with weekly checks the two are the
+// same, and even spacing keeps a sparse series readable.
+(function () {
+  var data = JSON.parse(document.getElementById('series-data').textContent);
+  var i = 0;
+  Object.keys(data).forEach(function (key) {
+    i += 1;
+    var host = document.getElementById('chart-' + i);
+    if (!host) return;
+    var pts = data[key];
+    var W = 600, H = 140, pad = 24;
+    var step = pts.length > 1 ? (W - pad * 2) / (pts.length - 1) : 0;
+    var coords = pts.map(function (p, n) {
+      var x = pad + n * step;
+      var y = H - pad - (p.purity / 100) * (H - pad * 2);
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+
+    host.innerHTML =
+      '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" role="img" ' +
+      'aria-label="Purity trend for ' + key + '">' +
+      // 100% and 50% guide lines, so a reader can place the line by eye.
+      '<line x1="' + pad + '" y1="' + pad + '" x2="' + (W - pad) + '" y2="' + pad +
+        '" stroke="#d8e0da"/>' +
+      '<line x1="' + pad + '" y1="' + (H / 2) + '" x2="' + (W - pad) + '" y2="' + (H / 2) +
+        '" stroke="#eef2f0"/>' +
+      '<text x="2" y="' + (pad + 4) + '" font-size="10" fill="#5d6b62">100%</text>' +
+      '<text x="2" y="' + (H - pad + 4) + '" font-size="10" fill="#5d6b62">0%</text>' +
+      '<polyline fill="none" stroke="#14532d" stroke-width="2.5" points="' + coords + '"/>' +
+      pts.map(function (p, n) {
+        var x = pad + n * step;
+        var y = H - pad - (p.purity / 100) * (H - pad * 2);
+        return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) +
+               '" r="3.5" fill="#14532d"><title>' + p.at + ': ' + p.purity +
+               '% (' + p.n + ' items)</title></circle>';
+      }).join('') +
+      '</svg>';
+  });
+})();
+</script>
+{% endblock %}

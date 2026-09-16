@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% comment %}
+  THE JANITOR'S SHELL.
+
+  There is no navigation. That is the design, not an omission.
+
+  The notebook is one screen and the person using it has one job: record what
+  is in front of them and put the phone away, in under ten seconds. Every link
+  in a navigation bar is a way to end up somewhere that is not the notebook,
+  on a cheap phone, in the sun, wearing gloves.
+
+  It also enforces two rules from CLAUDE.md that no amount of server-side
+  permission checking can enforce on its own:
+
+    * The purity check is not this person's job, so there is no link to it.
+    * Logged volume must never be a performance measure for the janitor, so
+      there is no route from here to a dashboard, a total, or a comparison
+      between areas. They cannot see a number that could be held against them.
+
+  Supervisors and admins reach their own interfaces by typing the address or
+  using a bookmark. They are not advertised here.
+{% endcomment %}
+{% block nav %}
+<nav class="nav nav-logger">
+  <span class="brand">Sukod</span>
+  {% comment %} Nothing else. The sync status lives further down the page, next to the
+     entries it refers to - logger.html owns that element (#sync-line) and
+     app.js writes to it. A quiet line, never a modal. {% endcomment %}
+</nav>
+{% endblock %}
+
+{# No method-tag legend: this screen displays no masses, only sack counts. #}
+{% block footer %}{% endblock %}

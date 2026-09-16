@@ -1,0 +1,9 @@
+{% extends "base_logger.html" %}
+{% block title %}Offline{% endblock %}
+{% block content %}
+<h1>No signal</h1>
+{% comment %} This page is only ever seen for a page we have never cached. Saved entries
+   are untouched by this: they are in IndexedDB and will sync on their own. {% endcomment %}
+<p>Anything you already logged is safe on this phone and will sync by itself.</p>
+<p><a class="btn" href="/">Back to the notebook</a></p>
+{% endblock %}

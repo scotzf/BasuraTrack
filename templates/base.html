@@ -1,0 +1,58 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>{% block title %}Sukod{% endblock %}</title>
+
+{# Progressive web app: manifest + theme colour make it installable. #}
+<link rel="manifest" href="{% static 'manifest.json' %}">
+<meta name="theme-color" content="#14532d">
+<link rel="apple-touch-icon" href="{% static 'icons/icon-192.png' %}">
+<link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body class="{% block bodyclass %}{% endblock %}">
+
+{% comment %}
+  The navigation is a BLOCK, not a fixed bar, because Sukod has three separate
+  interfaces and each one shows only its own links. A janitor who can see a
+  link to the dashboard is one click from a screen that turns their work into
+  a score, which CLAUDE.md forbids. The separation is enforced server-side by
+  core/roles.py; this block is what makes it visible.
+
+  Filled in by base_logger.html, base_monitor.html and base_manage.html.
+{% endcomment %}
+{% block nav %}{% endblock %}
+
+<main>
+{% block content %}{% endblock %}
+</main>
+
+{% comment %}
+  Anything that must sit OUTSIDE <main> to escape its max-width and padding -
+  in practice the logger's action bar, which is pinned to the viewport so the
+  Save button stays within thumb reach however far the page has scrolled.
+{% endcomment %}
+{% block afterbody %}{% endblock %}
+
+{% block footer %}
+<footer class="foot">
+  Every figure carries its uncertainty and its method tag.
+  <span class="tags">W weighed &middot; C counted+calibrated &middot; V volume &middot; I imputed</span>
+</footer>
+{% endblock %}
+
+<script>
+// Register the service worker from the root scope so it can control every
+// page on the origin, not just /static/.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function (e) {
+    // A failed registration must never block the notebook. Offline still
+    // works through IndexedDB; only the cached shell is lost.
+    console.warn('service worker not registered', e);
+  });
+}
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

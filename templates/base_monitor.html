@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% comment %}
+  THE SUPERVISOR'S SHELL - monitoring only.
+
+  Everything reachable from here READS the record or adds a measurement about
+  its quality. Nothing here creates, edits or deletes a sack entry: the count
+  is the janitor's account of what they handled, and a supervisor quietly
+  adjusting it would destroy the only thing making the total defensible.
+
+  The purity check lives here rather than on the janitor's screen because
+  CLAUDE.md assigns it to a supervisor, student assistant or PCO (Pollution
+  Control Officer), weekly, on public-facing areas only.
+{% endcomment %}
+{% block nav %}
+<nav class="nav">
+  <a class="brand" href="{% url 'dashboard' %}">Sukod</a>
+  <a href="{% url 'dashboard' %}">Dashboard</a>
+  <a href="{% url 'purity' %}">Purity check</a>
+  <a href="{% url 'purity_history' %}">History</a>
+  <a href="{% url 'report' %}">Report</a>
+
+  <span class="nav-spacer"></span>
+  {# An admin browsing the monitor keeps a way back to their own screens. #}
+  {% if request.staff.is_admin %}
+    <a href="{% url 'manage_home' %}">Manage</a>
+  {% endif %}
+  <span class="nav-who">{{ request.user.get_username }}</span>
+  <form method="post" action="{% url 'logout' %}" class="nav-form">
+    {% csrf_token %}<button type="submit" class="linkish">Sign out</button>
+  </form>
+</nav>
+{% endblock %}

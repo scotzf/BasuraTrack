@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% comment %}
+  THE ADMIN'S SHELL - the back room.
+
+  This is where the other two roles are brought into existence: a supervisor
+  gets an account, a janitor's phone gets a pairing code. Nobody self-registers
+  into a Sukod site.
+
+  Calibration lives here too. It is the number every counted mass in the system
+  is multiplied by, so the set of people who can change it is kept as small as
+  the set of people who can create accounts.
+{% endcomment %}
+{% block nav %}
+<nav class="nav nav-manage">
+  <a class="brand" href="{% url 'manage_home' %}">Sukod</a>
+  <a href="{% url 'manage_home' %}">Overview</a>
+  <a href="{% url 'manage_staff' %}">Accounts</a>
+  <a href="{% url 'manage_devices' %}">Devices</a>
+  <a href="{% url 'calibration' %}">Calibration</a>
+
+  <span class="nav-spacer"></span>
+  <a href="{% url 'dashboard' %}">Dashboard</a>
+  <span class="nav-who">{{ request.user.get_username }}</span>
+  <form method="post" action="{% url 'logout' %}" class="nav-form">
+    {% csrf_token %}<button type="submit" class="linkish">Sign out</button>
+  </form>
+</nav>
+{% endblock %}

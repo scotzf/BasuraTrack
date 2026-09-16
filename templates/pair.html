@@ -1,0 +1,17 @@
+{% extends "base_logger.html" %}
+{% block title %}Pair this device{% endblock %}
+{% block content %}
+{% comment %} The only screen a logger sees that is not the notebook, and only once.
+   No username, no password, no account. A code from the supervisor. {% endcomment %}
+<h1>Pair this device</h1>
+<p class="muted">Type the code your supervisor gave you. You will not be asked again.</p>
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+<form class="card" method="post">
+  {% csrf_token %}
+  <label for="code">Pairing code</label>
+  <input type="text" id="code" name="code" autocapitalize="characters"
+         autocomplete="off" maxlength="8" required
+         style="font-size:30px;letter-spacing:6px;text-align:center">
+  <button type="submit" style="margin-top:14px">Pair</button>
+</form>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base_logger.html" %}
+{% block title %}Paired{% endblock %}
+{% block content %}
+<h1>Paired as {{ device.label }}</h1>
+<p class="muted">This device now logs for {{ device.site.name }}. Go and log sacks.</p>
+<p><a class="btn" href="/">Open the notebook</a></p>
+<script>
+  // The token lives in localStorage so app.js can attach it to every sync,
+  // independent of cookies or sessions. It is a device credential, not a login.
+  localStorage.setItem('sukod.device', '{{ token }}');
+</script>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sukod report &mdash; {{ site.name }}</title>
+<style>
+/*
+  Print stylesheet. Self-contained rather than pulling style.css, because
+  WeasyPrint renders this document with no browser and no static server.
+*/
+@page { size: A4; margin: 18mm 16mm; }
+body { font: 11pt/1.45 "DejaVu Serif", Georgia, serif; color: #111; }
+h1 { font-size: 20pt; margin: 0 0 2mm; }
+h2 { font-size: 13pt; margin: 8mm 0 2mm; border-bottom: 1px solid #999; padding-bottom: 1mm; }
+.sub { color: #555; font-size: 10pt; margin-bottom: 6mm; }
+table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+th, td { text-align: left; padding: 2mm 1.5mm; border-bottom: 0.4pt solid #bbb; }
+th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: 0.4pt; color: #444; }
+td.num, th.num { text-align: right; }
+.headline td { font-size: 13pt; font-weight: bold; border: 0; padding-top: 3mm; }
+.headline th { border: 0; }
+.limits { background: #f6f2e6; border: 0.5pt solid #b8a96a; padding: 3mm 4mm; margin-top: 4mm; }
+.limits li { margin-bottom: 1.5mm; font-size: 9.5pt; }
+.method { font-size: 8pt; color: #555; }
+.foot { margin-top: 8mm; font-size: 8.5pt; color: #555; border-top: 0.5pt solid #999; padding-top: 2mm; }
+</style>
+</head>
+<body>
+
+<h1>{{ site.name }} &mdash; waste measurement report</h1>
+<div class="sub">
+  {{ label }} ({{ start|date:"d M Y" }} to {{ end|date:"d M Y" }}) &middot;
+  generated {{ generated|date:"d M Y H:i" }} &middot; {{ summary.entry_count }} entries
+</div>
+
+<h2>Headline figures</h2>
+<table class="headline">
+  <tr>
+    <th>Total handled</th>
+    <th>True recoverable</th>
+    <th>Diversion rate</th>
+  </tr>
+  <tr>
+    {# Every mass carries its band. There is no version of this table without one. #}
+    <td>{{ summary.total_kg|floatformat:1 }} &plusmn; {{ summary.total_sigma_kg|floatformat:1 }} kg</td>
+    <td>{{ summary.true_recoverable_kg|floatformat:1 }} &plusmn; {{ summary.true_recoverable_sigma_kg|floatformat:1 }} kg</td>
+    <td>{{ diversion_pct|floatformat:1 }}% &plusmn; {{ diversion_band|floatformat:1 }}</td>
+  </tr>
+</table>
+<p class="method">Uncertainty is one standard error, propagated from the
+calibration behind each counted entry (sd &divide; &radic;n) and combined across
+entries by adding variances. Weighed entries contribute mass but no estimation
+uncertainty.</p>
+
+<h2>By stream</h2>
+<table>
+  <tr><th>Stream</th><th class="num">Gross</th><th class="num">Purity</th>
+      <th>Purity source</th><th class="num">True recoverable</th><th>Method</th></tr>
+  {% for name, row in summary.streams.items %}
+  <tr>
+    <td>{{ name }}</td>
+    <td class="num">{{ row.kg|floatformat:1 }} &plusmn; {{ row.sigma_kg|floatformat:1 }} kg</td>
+    <td class="num">{% if row.purity %}{{ row.purity|floatformat:2 }}{% else %}&mdash;{% endif %}</td>
+    <td>{{ row.purity_source|default:"n/a" }}</td>
+    <td class="num">{% if row.recoverable %}{{ row.true_recoverable_kg|floatformat:1 }} &plusmn; {{ row.true_recoverable_sigma_kg|floatformat:1 }} kg{% else %}&mdash;{% endif %}</td>
+    <td>{{ row.methods }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>By source area, normalised</h2>
+<table>
+  <tr><th>Area</th><th class="num">Total</th><th class="num">Diversion</th>
+      <th class="num">Normalised</th><th>Basis</th></tr>
+  {% for r in areas %}
+    {% if r.gap %}
+      <tr><td>{{ r.area.name }}</td><td colspan="4"><em>No entries &mdash; gap, not zero</em></td></tr>
+    {% else %}
+      <tr>
+        <td>{{ r.area.name }}</td>
+        <td class="num">{{ r.summary.total_kg|floatformat:1 }} &plusmn; {{ r.summary.total_sigma_kg|floatformat:1 }} kg</td>
+        <td class="num">{{ r.summary.diversion_rate|floatformat:3 }}</td>
+        <td class="num">{{ r.per_unit|floatformat:3 }} kg</td>
+        <td>per {{ r.unit|lower }}</td>
+      </tr>
+    {% endif %}
+  {% endfor %}
+</table>
+
+{% comment %} The limitations section is not optional and is not a footnote. It is the
+   reason the rest of the document can be believed. {% endcomment %}
+<div class="limits">
+  <h2 style="margin-top:0;border:0">Limitations</h2>
+  <ul>
+    {% for l in summary.limitations %}<li>{{ l }}</li>{% endfor %}
+    {% if gaps %}
+      <li>{{ gaps|length }} day(s) in this period have no entries at all. They
+        are excluded, not counted as zero waste:
+        {% for d in gaps %}{{ d|date:"d M" }}{% if not forloop.last %}, {% endif %}{% endfor %}.</li>
+    {% endif %}
+    {% if not summary.limitations and not gaps %}
+      <li>No purity gaps and no missing days in this period. Every recoverable
+        stream shown was measured, not assumed.</li>
+    {% endif %}
+  </ul>
+</div>
+
+<div class="foot">
+  Method tags: W weighed &middot; C counted and calibrated &middot;
+  V volume-estimated &middot; I imputed.
+  Sukod reports what is in the bin, not what the bin is labelled.
+</div>
+
+</body>
+</html>

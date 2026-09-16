@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Set up Sukod{% endblock %}
+{% block content %}
+<h1>No site configured yet</h1>
+<p class="muted">Run the demo seeder to get a working site, streams, areas,
+calibrations and a week of entries:</p>
+<pre class="card">python manage.py seed_demo</pre>
+<p>Or add a Site in <a href="/django-admin/">the admin</a>.</p>
+{% endblock %}

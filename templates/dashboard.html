@@ -1,0 +1,188 @@
+{% extends "base_monitor.html" %}
+{% block title %}Dashboard &middot; Sukod{% endblock %}
+
+{% block content %}
+{% comment %}
+  Dashboard.
+
+  Rules this template exists to enforce:
+    * No mass without its error band and its method tag.
+    * The contaminated portion is drawn, never hidden.
+    * Areas are compared normalised, never on raw mass.
+    * Missing days are gaps, not zeros.
+    * The comparison is against the same period LAST YEAR, not last month.
+{% endcomment %}
+
+{# The time control. Everything below obeys it. #}
+<div class="periods">
+  <a href="?period=day"   class="{% if period == 'day' %}on{% endif %}">Day</a>
+  <a href="?period=week"  class="{% if period == 'week' %}on{% endif %}">Week</a>
+  <a href="?period=month" class="{% if period == 'month' %}on{% endif %}">Month</a>
+  <a href="?period=year"  class="{% if period == 'year' %}on{% endif %}">Year</a>
+  <a href="?period=custom" class="{% if period == 'custom' %}on{% endif %}">Custom</a>
+  <span class="spacer"></span>
+  <a class="report-link" href="{% url 'report' %}?period={{ period }}">Report</a>
+</div>
+
+{% if period == 'custom' %}
+<form class="card" method="get">
+  <input type="hidden" name="period" value="custom">
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+    <div style="flex:1"><label for="from">From</label>
+      <input type="date" id="from" name="from" value="{{ start|date:'Y-m-d' }}"></div>
+    <div style="flex:1"><label for="to">To</label>
+      <input type="date" id="to" name="to" value="{{ end|date:'Y-m-d' }}"></div>
+    <button type="submit">Apply</button>
+  </div>
+</form>
+{% endif %}
+
+<div class="page-head">
+  <div class="eyebrow">Waste measurement</div>
+  <h1>{{ site.name }}</h1>
+  <div class="sub">
+    {{ label }} &middot; {{ start|date:"d M Y" }} to {{ end|date:"d M Y" }}
+  </div>
+</div>
+
+<div class="card headline">
+  <div class="stat">
+    <div class="k">Total handled</div>
+    {# Mass and band are one unit of meaning. They are never split. #}
+    <div class="n">{{ summary.total_kg|floatformat:1 }}
+      <span class="band">&plusmn; {{ summary.total_sigma_kg|floatformat:1 }} kg</span></div>
+    <div class="small muted">{{ summary.entry_count }} entries</div>
+  </div>
+
+  <div class="stat">
+    <div class="k">True recoverable</div>
+    {% comment %}
+      Mass and band are one unit of meaning; they are never split. The band
+      carries the mass uncertainty only - the sampling error on the purity
+      spot-checks is real and is NOT in it, which is why the limitations
+      section below names every stream whose purity was assumed.
+    {% endcomment %}
+    <div class="n">{{ summary.true_recoverable_kg|floatformat:1 }}
+      <span class="band">&plusmn; {{ summary.true_recoverable_sigma_kg|floatformat:1 }} kg</span></div>
+    <div class="small muted">after measured contamination</div>
+  </div>
+
+  <div class="stat primary">
+    <div class="k">Diversion rate</div>
+    <div class="n">{{ diversion_pct|floatformat:1 }}%
+      <span class="band">&plusmn; {{ diversion_band|floatformat:1 }}</span></div>
+    <div class="small muted">
+      {# Same period last year. Waste is seasonal; last month is not a control. #}
+      Same period last year: {{ ly_diversion_pct|floatformat:1 }}%
+      ({{ last_year.entry_count }} entries)
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>By stream &mdash; what the label claimed, and what was in it</h2>
+  {% comment %} A hatched block means nothing until it is named. The legend is not
+     decoration: the contaminated portion IS the argument, so the reader has
+     to be able to say what they are looking at. {% endcomment %}
+  <div class="bar-legend">
+    <span><i class="clean"></i> Genuinely recoverable</span>
+    <span><i class="dirty"></i> Contamination measured in it</span>
+    <span><i class="unknown"></i> Recoverable but never checked</span>
+    <span><i class="nonrec"></i> Not a recoverable stream</span>
+  </div>
+  {% for b in bars %}
+  <div class="bar-row">
+    <div class="bar-label">
+      <span class="name-side"><span class="name">{{ b.name }}</span>
+        <span class="tag">{{ b.methods }}</span>
+        {% comment %} A stream spanning several areas can carry more than one purity
+           source at once ("declared+site_average"), so we test for each
+           marker being PRESENT rather than for the whole string matching.
+           Every source in play gets its own chip - a stream that is part
+           measured and part assumed must not read as wholly measured. {% endcomment %}
+        {% if 'declared' in b.purity_source %}<span class="tag declared">DECLARED</span>{% endif %}
+        {% if 'unmeasured' in b.purity_source %}<span class="tag unmeasured">NOT CHECKED</span>{% endif %}
+        {% if 'site_average' in b.purity_source %}<span class="tag site_average">SITE AVG</span>{% endif %}
+      </span>
+      {# Mass and band are one unit of meaning. Never split across lines. #}
+      <span class="figure">{{ b.kg|floatformat:1 }} &plusmn; {{ b.sigma|floatformat:1 }} kg
+        {% if b.recoverable %}
+          <span class="purity">
+            &middot; {% if b.purity %}{{ b.purity|floatformat:2 }} purity{% else %}purity unknown{% endif %}
+          </span>
+        {% endif %}
+      </span>
+    </div>
+    <div class="bar">
+      {% comment %}
+        Four states, never collapsed into two:
+          clean   - recoverable, checked, genuinely the right material
+          dirty   - recoverable, checked, found to be contaminated
+          unknown - recoverable, never checked. Not clean, not contaminated.
+          nonrec  - not a recoverable stream at all. Correctly sorted waste,
+                    which is NOT the same thing as contamination.
+      {% endcomment %}
+      <div class="clean"   style="width:{{ b.pct_clean }}%"></div>
+      <div class="dirty"   style="width:{{ b.pct_dirty }}%"></div>
+      <div class="unknown" style="width:{{ b.pct_unknown }}%"></div>
+      <div class="nonrec"  style="width:{{ b.pct_nonrec }}%"></div>
+    </div>
+    {% if b.recoverable and b.contaminated %}
+      <div class="bar-note">{{ b.contaminated|floatformat:1 }} kg of this was
+        in the wrong stream &mdash; counted as waste, not diversion.</div>
+    {% endif %}
+  </div>
+  {% empty %}
+    <p class="muted">No entries in this period.</p>
+  {% endfor %}
+</div>
+
+<div class="card">
+  <h2>By source area &mdash; normalised</h2>
+  <p class="small muted">Raw totals always rank the biggest building worst,
+    which is not a finding. These are per denominator per day.</p>
+  <div class="table-wrap">
+  <table>
+    <tr><th>Area</th><th class="num">Total</th><th class="num">Diversion</th>
+        <th class="num">Normalised</th><th>Basis</th></tr>
+    {% for r in areas %}
+      {% if r.gap %}
+        <tr class="gap"><td>{{ r.area.name }}</td>
+          <td colspan="4">No entries in this period &mdash; gap, not zero.</td></tr>
+      {% else %}
+        <tr>
+          <td>{{ r.area.name }}</td>
+          <td class="num">{{ r.summary.total_kg|floatformat:1 }}
+            &plusmn; {{ r.summary.total_sigma_kg|floatformat:1 }} kg</td>
+          <td class="num">{{ r.summary.diversion_rate|floatformat:3 }}</td>
+          <td class="num">{{ r.per_unit|floatformat:3 }} kg</td>
+          <td class="small muted">per {{ r.unit|lower }}</td>
+        </tr>
+      {% endif %}
+    {% endfor %}
+  </table>
+  </div>
+</div>
+
+{% if gaps %}
+<div class="card limits">
+  <h2>Days with no entries</h2>
+  <p class="small">Treated as unmeasured, never as zero waste.</p>
+  <p class="small">{% for d in gaps %}{{ d|date:"d M" }}{% if not forloop.last %} &middot; {% endif %}{% endfor %}</p>
+</div>
+{% endif %}
+
+{% if summary.limitations %}
+<div class="card limits">
+  <h2>Limitations of these figures</h2>
+  <ul>{% for l in summary.limitations %}<li>{{ l }}</li>{% endfor %}</ul>
+</div>
+{% endif %}
+
+{% if open_flags %}
+<div class="card small">
+  <strong>{{ open_flags }}</strong> entries flagged for review
+  (location did not match the source area). Loggers are never shown these.
+</div>
+{% endif %}
+{% endblock %}

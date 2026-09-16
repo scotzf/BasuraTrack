@@ -1,0 +1,113 @@
+{% extends "base_logger.html" %}{% load static %}
+{% block bodyclass %}logger{% endblock %}
+{% block title %}Log sacks &middot; Sukod{% endblock %}
+
+{% block content %}
+{% comment %}
+  The notebook.
+
+  One screen, all four streams, no navigation between them. The person is
+  standing in front of the whole pile, so they should be able to enter the
+  whole pile. Target: under ten seconds, start to finish.
+
+  Nothing on this screen waits for the network. Save writes to IndexedDB
+  (a database built into the browser) and returns. Sync happens afterwards,
+  silently, and is allowed to fail.
+
+  Layout order is the order of the gesture:
+      where  ->  how many  ->  how full  ->  save
+  The save control is pinned to the bottom of the viewport rather than sitting
+  at the end of the page, because with four streams and a fill selector on
+  screen it would otherwise fall below the fold on a phone - and scrolling to
+  reach it needs the hand that is holding the sacks.
+{% endcomment %}
+
+{% if not device %}
+  {% comment %} Unpaired phones still work. We say so quietly rather than blocking: an
+     entry that is not saved because of a pairing problem is an entry lost. {% endcomment %}
+  <div class="card small muted">
+    This device is not paired. Entries still save on the phone.
+    <a href="{% url 'pair' %}">Pair it</a> so they reach the site.
+  </div>
+{% endif %}
+
+{# --- where ------------------------------------------------------------- #}
+<div class="area-picker">
+  <label for="area">Source area</label>
+  <select id="area">
+    {% for a in areas %}
+      <option value="{{ a.id }}"
+              data-lat="{{ a.lat|default_if_none:'' }}"
+              data-lng="{{ a.lng|default_if_none:'' }}">{{ a.name }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+{% comment %} --- how many ----------------------------------------------------------
+   One tile per stream. The row takes the stream's own colour from the
+   database, passed in as a CSS custom property so the stylesheet can use it
+   for the left edge, and app.js can light the whole tile when the count goes
+   above zero. {% endcomment %}
+<div class="streams">
+  {% for s in streams %}
+  <div class="stream-row" data-stream="{{ s.id }}"
+       style="--row-colour: {{ s.colour }}">
+    <div class="stream-name">
+      <span class="swatch" style="background:{{ s.colour }}"></span>
+      <span class="label-text">{{ s.name }}</span>
+    </div>
+    <button class="counter-btn minus" type="button"
+            aria-label="One fewer {{ s.name }} sack">&minus;</button>
+    <div class="count-value zero" data-count="0"
+         role="status" aria-label="{{ s.name }} sacks">0</div>
+    <button class="counter-btn plus" type="button"
+            aria-label="One more {{ s.name }} sack">+</button>
+  </div>
+  {% endfor %}
+</div>
+
+{# --- how full ----------------------------------------------------------- #}
+<div class="fill-block">
+  <label id="fill-label">Fill level of these sacks</label>
+  <div class="fills" role="group" aria-labelledby="fill-label">
+    {% for value, text in fills %}
+      <button type="button" data-fill="{{ value }}"
+              aria-pressed="{% if forloop.first %}true{% else %}false{% endif %}">{{ text }}</button>
+    {% endfor %}
+  </div>
+</div>
+
+{# --- what has been logged already today --------------------------------- #}
+<div class="card">
+  <h2>Today</h2>
+  <div class="today-list" id="today">
+    <div class="muted small">No entries yet today.</div>
+  </div>
+</div>
+{% endblock %}
+
+{% comment %} --- save ---------------------------------------------------------------
+   Outside the content block so it sits outside <main> and can be pinned to
+   the viewport. Thumb reach is the whole reason it is here. {% endcomment %}
+{% block afterbody %}
+<div class="actionbar">
+  <div class="actionbar-inner">
+    <div class="tally">
+      {% comment %} Written by app.js. Says what is about to be saved, so the person can
+         check the total against the pile without re-reading four rows. {% endcomment %}
+      <span class="tally-count none" id="tally">Nothing counted yet</span>
+      {# Sync status is a quiet line. Never a modal. #}
+      <span class="sync-line" id="sync-line"></span>
+    </div>
+    <button id="save" type="button" disabled>Save</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Passed to app.js so it can read the area from a QR scan redirect (?area=).
+  window.SUKOD_AREA_PARAM = new URLSearchParams(location.search).get('area');
+</script>
+<script src="{% static 'app.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,80 @@
+{% extends "base_manage.html" %}
+{% block title %}Accounts &middot; Sukod{% endblock %}
+{% comment %}
+  Create supervisor accounts. This is the screen Denver described as "the
+  initial": the admin is the role that brings the other roles into existence.
+
+  Note what is NOT here: any way to create an account for a janitor. That is
+  not an oversight. CLAUDE.md lists "per-person accounts for janitorial staff"
+  under Do Not Build, because an account attaches logged volume to a named
+  human, and the moment that happens the volume becomes a performance measure
+  and people log less. Janitors get a DEVICE, on the Devices screen.
+{% endcomment %}
+{% block content %}
+<h1>Accounts</h1>
+<p class="small muted">
+  Supervisors and admins sign in with a password. Janitors never do &mdash;
+  they <a href="{% url 'manage_devices' %}">pair a device</a> instead.
+</p>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<form class="card" method="post">
+  {% csrf_token %}
+  <h2>New account</h2>
+
+  <label for="full_name">Name <span class="muted small">(optional)</span></label>
+  <input type="text" id="full_name" name="full_name" autocomplete="off">
+
+  <label for="username">Username</label>
+  <input type="text" id="username" name="username" required autocomplete="off"
+         autocapitalize="none" spellcheck="false">
+
+  <label for="password">Password</label>
+  <input type="text" id="password" name="password" required minlength="8"
+         autocomplete="new-password">
+  {% comment %} Shown as plain text on purpose: the admin is typing a password FOR someone
+     else and has to read it back to them. A masked field here causes typos
+     that lock the new supervisor out, and there is no self-service reset. {% endcomment %}
+  <p class="small muted">
+    Visible so you can read it out. At least 8 characters. Tell them to change
+    it once they are in &mdash; you cannot look it up again after saving.
+  </p>
+
+  <label for="role">Role</label>
+  <select id="role" name="role">
+    <option value="supervisor">Supervisor &mdash; dashboard, reports, purity checks</option>
+    <option value="admin">Admin &mdash; all of that, plus accounts and calibration</option>
+  </select>
+
+  <button type="submit">Create account</button>
+</form>
+
+<div class="card">
+  <h2>Existing accounts</h2>
+  {% if staff %}
+  <table class="table">
+    <tr><th>Username</th><th>Name</th><th>Role</th><th>Created</th><th>By</th></tr>
+    {% for s in staff %}
+    <tr>
+      <td>{{ s.user.get_username }}</td>
+      <td>{{ s.user.first_name|default:"&mdash;" }}</td>
+      <td>
+        {% if s.is_admin %}<span class="tag tag-admin">ADMIN</span>
+        {% else %}<span class="tag">SUPERVISOR</span>{% endif %}
+      </td>
+      <td class="small muted">{{ s.created_on|date:"d M Y" }}</td>
+      <td class="small muted">{{ s.created_by|default:"&mdash;" }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="small muted">
+    To disable an account, deactivate the user in
+    <a href="/django-admin/auth/user/">Django admin</a>. Accounts are never
+    deleted &mdash; the audit trail refers to them.
+  </p>
+  {% else %}
+  <p class="muted">No accounts yet. You are signed in as the first admin.</p>
+  {% endif %}
+</div>
+{% endblock %}

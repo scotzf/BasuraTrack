@@ -1,0 +1,649 @@
+/*
+  Sukod styles.
+
+  Three interfaces, three visual registers - but one design system, so they
+  read as the same product:
+
+  * The LOGGER is a notebook held one-handed, in daylight, next to a pile of
+    sacks. Huge targets, heavy contrast, a thumb-reachable action bar, nothing
+    that can be mis-tapped. Minimum touch target 56px.
+  * The MONITOR is read indoors on a laptop by someone who has to defend the
+    number in a meeting. Dense, typographic, error bands everywhere.
+  * The BACK ROOM is setup work: forms and tables, done rarely, carefully.
+
+  A note on "modern", because the two goals genuinely conflict here:
+  contemporary interface design leans on thin weights, low-contrast greys and
+  generous whitespace. On a cheap phone in direct Philippine sunlight, thin
+  low-contrast text is invisible. So this file takes the SHAPE of modern design
+  - soft radii, layered shadows, clear spacing rhythm, motion on press - and
+  refuses its COLOUR habits. Body text is near-black on white throughout, and
+  the muted grey is held at a contrast ratio that still passes in daylight.
+
+  No framework and no build step on purpose: the logger has to paint on a cheap
+  Android phone over a weak signal. No web fonts either - a font that has not
+  downloaded yet is a blank screen.
+*/
+
+/* ==========================================================================
+   1. Tokens
+   ========================================================================== */
+
+:root {
+  /* Neutrals carry a trace of green so white cards sit warm against the page
+     rather than looking blue-cold next to the brand colour. */
+  --ink:        #0e1613;   /* body text - near black, not black */
+  --ink-2:      #33443c;   /* secondary text */
+  --muted:      #5a6b61;   /* held at ~4.9:1 on white: readable outdoors */
+  --line:       #dde5e0;
+  --line-2:     #eef2ef;
+  --paper:      #ffffff;
+  --ground:     #f2f6f3;
+
+  --green:      #14532d;
+  --green-light:#1f7a44;
+  --green-50:   #e9f3ed;
+  --green-100:  #d2e7db;
+
+  --amber:      #b45309;
+  --amber-50:   #fffbeb;
+  --red:        #b91c1c;
+  --red-50:     #fef2f2;
+  --slate:      #1e293b;   /* the back room */
+
+  /* Stream colours. Also set per-stream from the database via inline style,
+     so these are only the fallback. */
+  --bio: #4d7c0f;
+  --rec: #0369a1;
+  --res: #57534e;
+  --mix: #7c3aed;
+
+  --radius:    14px;
+  --radius-lg: 20px;
+  --radius-sm: 10px;
+
+  /* Layered rather than one blurry drop: the top layer gives the edge, the
+     lower one the lift. */
+  --shadow-1: 0 1px 2px rgba(14,22,19,.05), 0 1px 3px rgba(14,22,19,.04);
+  --shadow-2: 0 2px 4px rgba(14,22,19,.05), 0 8px 20px rgba(14,22,19,.07);
+  --shadow-3: 0 -1px 0 var(--line), 0 -8px 24px rgba(14,22,19,.06);
+
+  --tap: 56px;             /* the floor for anything touched in the field */
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--ground);
+  /* Kerning and ligatures on; tabular figures are applied per-element so that
+     numbers line up in columns without making prose look mechanical. */
+  font-feature-settings: "kern" 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+main {
+  padding: 20px 16px 40px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* Honour the system setting. Everything below that moves, moves briefly. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* ==========================================================================
+   2. Navigation - one bar per interface, deliberately different colours
+   ========================================================================== */
+
+.nav {
+  display: flex; gap: 2px; align-items: center; flex-wrap: wrap;
+  background: var(--green);
+  padding: 10px 16px;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+  position: sticky; top: 0; z-index: 30;
+}
+.nav a {
+  color: #cfe5d9; text-decoration: none;
+  padding: 9px 12px; border-radius: var(--radius-sm);
+  font-size: 15px; font-weight: 500;
+  transition: background .15s ease, color .15s ease;
+}
+.nav a:hover { background: rgba(255,255,255,.13); color: #fff; }
+.nav a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.nav .brand {
+  font-weight: 700; color: #fff; font-size: 19px;
+  margin-right: 12px; letter-spacing: -.01em;
+  display: inline-flex; align-items: center; gap: 8px;
+}
+/* The mark: a filled square with a notch, readable at 16px. */
+.nav .brand::before {
+  content: ""; width: 15px; height: 15px; border-radius: 4px;
+  background: #fff; box-shadow: inset -5px -5px 0 0 var(--green-light);
+}
+.nav-logger { background: var(--green); }
+.nav-manage { background: var(--slate); }
+.nav-manage .brand::before { box-shadow: inset -5px -5px 0 0 #64748b; }
+
+.nav-spacer { flex: 1 1 auto; }
+.nav-who {
+  color: #cfe5d9; font-size: 13px; padding: 8px 8px; opacity: .85;
+  font-variant-numeric: tabular-nums;
+}
+.nav-form { display: inline; margin: 0; }
+.nav .linkish {
+  background: none; border: 0; color: #cfe5d9; font: inherit; font-size: 15px;
+  padding: 9px 12px; border-radius: var(--radius-sm); cursor: pointer;
+  width: auto; transition: background .15s ease;
+}
+.nav .linkish:hover { background: rgba(255,255,255,.13); color: #fff; }
+
+.foot {
+  padding: 22px 16px calc(36px + env(safe-area-inset-bottom, 0px));
+  color: var(--muted); font-size: 13px; text-align: center;
+  border-top: 1px solid var(--line); margin-top: 36px;
+}
+.foot .tags { display: block; margin-top: 5px; font-variant-numeric: tabular-nums; }
+
+/* ==========================================================================
+   3. Generic pieces
+   ========================================================================== */
+
+.card {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-1);
+}
+
+h1 {
+  font-size: 26px; line-height: 1.2; margin: 0 0 6px;
+  letter-spacing: -.02em; font-weight: 700;
+}
+h2 {
+  font-size: 16px; margin: 0 0 12px; font-weight: 650;
+  letter-spacing: -.01em;
+}
+.muted { color: var(--muted); }
+.small { font-size: 13px; line-height: 1.5; }
+.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+
+label {
+  display: block; font-size: 13px; font-weight: 600; color: var(--ink-2);
+  margin: 14px 0 6px;
+}
+
+input, select, textarea {
+  width: 100%; padding: 12px 14px; font-size: 16px;
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: #fff; color: var(--ink);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:focus, select:focus, textarea:focus {
+  outline: 0; border-color: var(--green-light);
+  box-shadow: 0 0 0 3px var(--green-100);
+}
+
+button, .btn {
+  display: inline-block; padding: 14px 20px; font-size: 16px; font-weight: 650;
+  border: 0; border-radius: var(--radius-sm);
+  background: var(--green); color: #fff;
+  cursor: pointer; text-decoration: none; text-align: center;
+  transition: background .15s ease, transform .06s ease, box-shadow .15s ease;
+  touch-action: manipulation;
+}
+button:hover, .btn:hover { background: var(--green-light); }
+button:active, .btn:active { transform: translateY(1px); }
+button:focus-visible, .btn:focus-visible {
+  outline: 2px solid var(--green-light); outline-offset: 2px;
+}
+button.secondary { background: var(--green-50); color: var(--green); }
+button.secondary:hover { background: var(--green-100); }
+
+.error {
+  background: var(--red-50); border: 1px solid #fca5a5; color: #7f1d1d;
+  padding: 12px 14px; border-radius: var(--radius-sm); margin-bottom: 14px;
+  font-size: 14px;
+}
+
+/* Method and purity chips. Never rendered apart from the figure they describe:
+   a mass without its provenance is exactly the number this project exists to
+   stop people quoting. */
+.tag {
+  display: inline-block; font-size: 10.5px; font-weight: 700;
+  letter-spacing: .06em; padding: 3px 7px; border-radius: 5px;
+  background: var(--green-50); color: var(--ink-2);
+  vertical-align: middle; margin-left: 6px; white-space: nowrap;
+}
+.tag.declared    { background: #fef3c7; color: #92400e; }
+.tag.unmeasured  { background: #fee2e2; color: #991b1b; }
+.tag.site_average{ background: #e0e7ff; color: #3730a3; }
+.tag-admin       { background: var(--slate); color: #fff; }
+.tag-warn        { background: var(--amber); color: #fff; }
+
+/* ==========================================================================
+   4. THE LOGGER - the janitor's notebook
+   ==========================================================================
+   Read this section as one gesture: pick the area, tap counts for the four
+   streams, pick a fill level, hit Save. Everything is sized so that gesture
+   works with one thumb, in gloves, in the sun, in under ten seconds.
+*/
+
+body.logger { background: var(--ground); }
+body.logger main {
+  padding: 14px 14px 0;
+  max-width: 560px;
+  /* Room for the sticky action bar so the last card is never trapped under it. */
+  padding-bottom: 160px;
+}
+
+/* --- the area picker ------------------------------------------------------
+   The single most important control on the screen: getting it wrong files the
+   waste against the wrong building. Big, and styled as a first-class control
+   rather than a browser default dropdown. */
+.area-picker {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 12px 14px; margin-bottom: 14px;
+  box-shadow: var(--shadow-1);
+}
+.area-picker label {
+  margin: 0 0 4px; font-size: 11.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+.area-picker select {
+  font-size: 20px; font-weight: 700; padding: 12px 40px 12px 12px;
+  min-height: var(--tap); border-color: var(--line);
+  letter-spacing: -.01em;
+  /* Native chevron removed and redrawn, so the control looks the same on every
+     Android skin. */
+  -webkit-appearance: none; appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314532d' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 22px 22px;
+}
+
+/* --- the four stream counters --------------------------------------------
+   One tile per stream, all four on screen at once, because the person is
+   standing in front of all the sacks at once. */
+.streams { display: grid; gap: 10px; margin-bottom: 14px; }
+
+.stream-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto;
+  align-items: center; gap: 10px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--row-colour, var(--line));
+  border-radius: var(--radius);
+  padding: 12px 12px 12px 14px;
+  box-shadow: var(--shadow-1);
+  transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+/* A stream with sacks on it lifts and takes its own colour, so a glance down
+   the screen shows what is about to be saved. */
+.stream-row.has-count {
+  background: #fff;
+  box-shadow: var(--shadow-2);
+  border-color: var(--row-colour, var(--green-light));
+}
+
+.stream-name {
+  font-size: 18px; font-weight: 700; letter-spacing: -.01em;
+  display: flex; align-items: center; gap: 10px; min-width: 0;
+}
+.stream-name .swatch {
+  flex: none; width: 12px; height: 12px; border-radius: 4px;
+  box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 0 0 4px rgba(14,22,19,.07);
+}
+.stream-name .label-text { overflow: hidden; text-overflow: ellipsis; }
+
+.counter-btn {
+  width: 58px; height: 58px; font-size: 28px; line-height: 1;
+  border-radius: var(--radius); background: var(--green-50); color: var(--green);
+  font-weight: 700; padding: 0;
+  display: grid; place-items: center;
+  touch-action: manipulation; -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .08s ease, background .15s ease;
+}
+.counter-btn:hover { background: var(--green-100); }
+/* A visible squash on press. On a phone with no haptics this is the only
+   feedback that the tap registered. */
+.counter-btn:active { transform: scale(.92); }
+.counter-btn.plus { background: var(--green); color: #fff; }
+.counter-btn.plus:hover { background: var(--green-light); }
+.counter-btn.minus:disabled { opacity: .4; }
+
+.count-value {
+  min-width: 46px; text-align: center;
+  font-size: 30px; font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.02em;
+  transition: color .15s ease;
+}
+/* Zero is deliberately faint: it is the resting state, not a value. */
+.count-value.zero { color: #bdcbc3; }
+
+/* --- fill level ----------------------------------------------------------- */
+.fill-block {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 14px; box-shadow: var(--shadow-1);
+  margin-bottom: 14px;
+}
+.fill-block > label {
+  margin: 0 0 8px; font-size: 11.5px; letter-spacing: .08em;
+  text-transform: uppercase; color: var(--muted);
+}
+/* A segmented control: one background, three cells, the selected one raised. */
+.fills {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px;
+  background: var(--ground); border-radius: var(--radius);
+  padding: 4px;
+}
+.fills button {
+  background: transparent; color: var(--ink-2);
+  min-height: 52px; font-size: 16px; font-weight: 650;
+  border-radius: var(--radius-sm); box-shadow: none;
+}
+.fills button:hover { background: rgba(255,255,255,.7); }
+.fills button[aria-pressed="true"] {
+  background: var(--paper); color: var(--green);
+  box-shadow: var(--shadow-1);
+}
+
+/* --- the action bar -------------------------------------------------------
+   Pinned to the bottom of the viewport, inside thumb reach. The old layout put
+   Save below the fold once four streams and a fill selector were on screen,
+   which on a phone meant scrolling with the hand that is holding the sacks. */
+.actionbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 25;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line);
+  box-shadow: var(--shadow-3);
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+}
+.actionbar-inner { max-width: 560px; margin: 0 auto; }
+
+.tally {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; margin-bottom: 9px; min-height: 22px;
+}
+.tally-count { font-size: 14px; font-weight: 650; color: var(--ink); }
+.tally-count strong {
+  font-size: 18px; font-variant-numeric: tabular-nums; margin-right: 2px;
+}
+.tally-count.none { color: var(--muted); font-weight: 500; }
+
+#save {
+  width: 100%; min-height: 62px; font-size: 20px; font-weight: 700;
+  border-radius: var(--radius); letter-spacing: -.01em;
+  box-shadow: 0 2px 10px rgba(20,83,45,.24);
+}
+#save:disabled {
+  background: #dfe6e2; color: #93a19a; box-shadow: none; cursor: default;
+  transform: none;
+}
+
+/* Sync state is a quiet line. Never a modal, never a spinner, never a dialog
+   on save - the entry is already in IndexedDB before the network is consulted. */
+.sync-line {
+  font-size: 13px; color: var(--muted); min-height: 18px;
+  text-align: right; font-variant-numeric: tabular-nums;
+}
+/* app.js writes a confirmation here after a save. It fades in rather than
+   appearing, so a glance catches that something happened. */
+.sync-line:not(:empty) { animation: fadeIn .22s ease both; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(2px); } }
+
+/* --- today's entries ------------------------------------------------------ */
+.today-list { margin-top: 4px; }
+.today-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 12px 0; border-bottom: 1px solid var(--line-2);
+  font-size: 15px;
+}
+.today-item:last-child { border-bottom: 0; }
+.today-item .undo {
+  flex: none;
+  background: var(--red-50); color: var(--red);
+  padding: 9px 14px; font-size: 14px; font-weight: 650;
+  border-radius: 999px; box-shadow: none;
+}
+.today-item .undo:hover { background: #fde2e2; }
+
+/* ==========================================================================
+   5. THE MONITOR - the supervisor's dashboard
+   ========================================================================== */
+
+.page-head { margin-bottom: 16px; }
+.page-head .eyebrow {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 4px;
+}
+.page-head h1 { margin-bottom: 2px; }
+.page-head .sub { color: var(--muted); font-size: 14px; }
+
+/* The time control. Everything below it obeys it, so it sits above everything
+   and stays put while the page scrolls. */
+.periods {
+  display: flex; gap: 6px; flex-wrap: wrap; align-items: center;
+  margin-bottom: 18px; padding: 6px;
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 999px; box-shadow: var(--shadow-1);
+  position: sticky; top: 62px; z-index: 20;
+}
+.periods a {
+  padding: 9px 16px; border-radius: 999px;
+  background: transparent; color: var(--ink-2);
+  text-decoration: none; font-size: 14px; font-weight: 600;
+  transition: background .15s ease, color .15s ease;
+}
+.periods a:hover { background: var(--green-50); }
+.periods a.on {
+  background: var(--green); color: #fff;
+  box-shadow: 0 1px 4px rgba(20,83,45,.28);
+}
+.periods .spacer { flex: 1 1 auto; }
+.periods .report-link {
+  background: var(--green-50); color: var(--green); font-weight: 650;
+}
+.periods .report-link:hover { background: var(--green-100); }
+
+/* --- headline figures -----------------------------------------------------
+   Every one of these carries its error band in the same block as the number.
+   They are one unit of meaning and the CSS must never let them be split across
+   a line break or read as two separate facts. */
+.headline {
+  display: grid; gap: 2px; padding: 0; overflow: hidden;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  background: var(--line-2);
+}
+.stat { background: var(--paper); padding: 18px; }
+.stat .k {
+  font-size: 11.5px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .09em; font-weight: 700; margin-bottom: 8px;
+}
+.stat .n {
+  font-size: 32px; font-weight: 800; line-height: 1.1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.025em;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px;
+}
+.stat .band {
+  font-size: 14px; color: var(--muted); font-weight: 650;
+  letter-spacing: 0; white-space: nowrap;
+}
+.stat .small { margin-top: 7px; }
+/* The figure this whole project exists to produce. */
+.stat.primary { background: var(--green); }
+.stat.primary .k { color: #a7cdb8; }
+.stat.primary .n { color: #fff; }
+.stat.primary .band { color: #bcdccb; }
+.stat.primary .small, .stat.primary .muted { color: #a7cdb8 !important; }
+
+/* --- the stream bars ------------------------------------------------------
+   The contaminated portion is DRAWN, not hidden. It is the whole argument. */
+.bar-row {
+  margin: 0; padding: 16px 0; border-bottom: 1px solid var(--line-2);
+}
+.bar-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.bar-row:first-child { padding-top: 4px; }
+
+.bar-label {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 12px; font-size: 14px; margin-bottom: 9px; flex-wrap: wrap;
+}
+.bar-label .name { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+.bar-label .figure {
+  font-variant-numeric: tabular-nums; font-weight: 650;
+  white-space: nowrap; text-align: right;
+}
+.bar-label .figure .purity { font-weight: 500; color: var(--muted); }
+
+.bar {
+  height: 30px; border-radius: 8px; overflow: hidden; display: flex;
+  background: var(--line-2);
+  box-shadow: inset 0 0 0 1px rgba(14,22,19,.04);
+}
+.bar .clean { background: var(--green-light); transition: width .4s ease; }
+/* Not a recoverable stream: correctly sorted waste. Flat neutral, because
+   nothing here was mis-sorted and colouring it as contamination would
+   overstate the argument this dashboard exists to make. */
+.bar .nonrec { background: #9aa8a0; transition: width .4s ease; }
+/* Recoverable but never checked. Drawn as an open weave rather than a solid:
+   unmeasured is not clean and it is not contaminated - it is unknown, and the
+   bar must not let anyone read it as either. */
+.bar .unknown {
+  background: repeating-linear-gradient(45deg,
+    #cbd5d0, #cbd5d0 5px, #eef2f0 5px, #eef2f0 10px);
+  transition: width .4s ease;
+}
+/* Hatched so the distinction survives greyscale printing and colour blindness,
+   not only the screen it was designed on. */
+.bar .dirty {
+  background: repeating-linear-gradient(45deg,
+    #c2410c, #c2410c 5px, #ea8c4f 5px, #ea8c4f 10px);
+  transition: width .4s ease;
+}
+.bar-note {
+  font-size: 13px; color: var(--amber); margin-top: 7px; font-weight: 500;
+}
+
+/* A legend, because a hatched block means nothing until it is named. */
+.bar-legend {
+  display: flex; gap: 18px; flex-wrap: wrap;
+  font-size: 12.5px; color: var(--muted); margin-bottom: 6px;
+}
+.bar-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.bar-legend i {
+  width: 14px; height: 14px; border-radius: 4px; display: inline-block;
+}
+.bar-legend i.clean { background: var(--green-light); }
+.bar-legend i.dirty {
+  background: repeating-linear-gradient(45deg,
+    #c2410c, #c2410c 4px, #ea8c4f 4px, #ea8c4f 8px);
+}
+.bar-legend i.nonrec { background: #9aa8a0; }
+.bar-legend i.unknown {
+  background: repeating-linear-gradient(45deg,
+    #cbd5d0, #cbd5d0 4px, #eef2f0 4px, #eef2f0 8px);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+/* --- tables --------------------------------------------------------------- */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 11px 10px; border-bottom: 1px solid var(--line-2); }
+th {
+  color: var(--muted); font-size: 11px; text-transform: uppercase;
+  letter-spacing: .07em; font-weight: 700;
+  border-bottom: 1px solid var(--line);
+}
+tbody tr:last-child td, table tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+tr.gap td { color: var(--amber); font-style: italic; }
+.table-wrap { overflow-x: auto; margin: 0 -4px; }
+
+.table th {
+  padding: 6px 10px 8px 0; border-bottom: 1px solid var(--line);
+}
+.table td { padding: 12px 10px 12px 0; }
+
+/* --- callouts ------------------------------------------------------------- */
+.limits {
+  background: var(--amber-50); border: 1px solid #fcd34d;
+  border-radius: var(--radius); padding: 16px 18px; box-shadow: none;
+}
+.limits h2 { color: #92400e; }
+.limits ul { margin: 0; padding-left: 18px; }
+.limits li { margin-bottom: 7px; }
+.limits li:last-child { margin-bottom: 0; }
+
+/* ==========================================================================
+   6. The back room - admin
+   ========================================================================== */
+
+.auth-card { max-width: 400px; margin: 48px auto 0; padding: 26px; }
+.auth-card h1 { font-size: 23px; }
+.auth-aside { text-align: center; margin-top: 18px; }
+
+.inline-form { display: inline; margin: 0; }
+.inline-form .linkish {
+  background: none; border: 0; color: var(--red); font: inherit;
+  font-size: 14px; padding: 4px 0; cursor: pointer; width: auto;
+  text-decoration: underline;
+}
+
+.code-card { border-left: 4px solid var(--green-light); }
+/* The pairing code is read off a screen and typed into a phone from across a
+   room, so it is set as large as a heading and widely spaced. */
+.pair-code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 44px; font-weight: 700; letter-spacing: .18em;
+  color: var(--green); margin: 10px 0; word-break: break-all;
+}
+
+.setup-steps { margin: 10px 0 0; padding-left: 20px; line-height: 1.75; }
+.setup-steps li { margin-bottom: 11px; }
+
+/* ==========================================================================
+   7. Responsive
+   ========================================================================== */
+
+@media (max-width: 560px) {
+  h1 { font-size: 22px; }
+  .stat .n { font-size: 28px; }
+  .periods { top: 58px; border-radius: var(--radius); }
+  .pair-code { font-size: 34px; }
+  /* Identity and sign-out drop to their own line rather than squeezing the
+     section links out of reach. */
+  .nav-spacer { flex-basis: 100%; height: 0; }
+  .bar-label .figure { text-align: left; }
+}
+
+@media (max-width: 380px) {
+  /* Smallest phones still in service: shrink the counter cluster before
+     anything wraps, but never below the 56px touch floor minus a hair. */
+  .counter-btn { width: 52px; height: 52px; font-size: 26px; }
+  .count-value { min-width: 38px; font-size: 26px; }
+  .stream-name { font-size: 16px; }
+}
+
+@media print {
+  .nav, .periods, .foot, .actionbar { display: none; }
+  body { background: #fff; }
+  .card { break-inside: avoid; border: 1px solid #999; box-shadow: none; }
+  .headline { background: #fff; }
+  .stat.primary { background: #fff; }
+  .stat.primary .k, .stat.primary .n,
+  .stat.primary .band, .stat.primary .small { color: #000 !important; }
+}

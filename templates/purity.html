@@ -1,0 +1,66 @@
+{% extends "base_monitor.html" %}
+{% block title %}Purity check &middot; Sukod{% endblock %}
+{% block content %}
+{% comment %}
+  The purity spot-check. Fifteen minutes, weekly, public-facing areas only.
+
+  This is a supervisor's, student assistant's or Pollution Control Officer's
+  job - NOT the logger's. It lives on its own screen for that reason.
+{% endcomment %}
+<h1>Purity check</h1>
+<p class="muted">Pull items from one stream's sack, count how many do not
+belong. Everyone else reports what the bin is labelled. This is how we report
+what is actually in it.</p>
+
+{% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+<form class="card" method="post">
+  {% csrf_token %}
+  <label for="source_area">Source area</label>
+  <select id="source_area" name="source_area" required>
+    {% for a in areas %}<option value="{{ a.id }}">{{ a.name }}{% if not a.public_facing %} (staff-only){% endif %}</option>{% endfor %}
+  </select>
+
+  <label for="stream">Stream</label>
+  <select id="stream" name="stream" required>
+    {% for s in streams %}<option value="{{ s.id }}">{{ s.name }}</option>{% endfor %}
+  </select>
+
+  <label for="items_checked">Items checked</label>
+  <input type="number" id="items_checked" name="items_checked" min="1" required
+         inputmode="numeric" placeholder="e.g. 50">
+
+  <label for="items_wrong">Of those, how many were in the wrong stream</label>
+  <input type="number" id="items_wrong" name="items_wrong" min="0" required
+         inputmode="numeric" placeholder="e.g. 9">
+
+  <label for="main_contaminant">Main contaminant (optional)</label>
+  <input type="text" id="main_contaminant" name="main_contaminant"
+         placeholder="e.g. food-soiled paper cups" maxlength="120">
+
+  <button type="submit" style="margin-top:14px">Save check</button>
+</form>
+
+<div class="card">
+  <h2>Recent checks</h2>
+  <table>
+    <tr><th>When</th><th>Area</th><th>Stream</th><th class="num">Checked</th>
+        <th class="num">Wrong</th><th class="num">Purity</th><th>Main contaminant</th></tr>
+    {% for c in recent %}
+    <tr>
+      <td>{{ c.checked_at|date:"d M H:i" }}</td>
+      <td>{{ c.source_area.name }}</td>
+      <td>{{ c.stream.name }}</td>
+      <td class="num">{{ c.items_checked }}</td>
+      <td class="num">{{ c.items_wrong }}</td>
+      <td class="num"><strong>{{ c.purity|floatformat:2 }}</strong></td>
+      <td class="small muted">{{ c.main_contaminant|default:"&mdash;" }}</td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="7" class="muted">No checks yet. Until a stream is checked,
+      it contributes nothing to true recoverable &mdash; unmeasured is not clean.</td></tr>
+    {% endfor %}
+  </table>
+  <p class="small"><a href="{% url 'purity_history' %}">Purity over time &rarr;</a></p>
+</div>
+{% endblock %}
